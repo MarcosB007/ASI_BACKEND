@@ -1,4 +1,4 @@
-import {pool} from '../db.js';
+import {pool} from '../database/db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import "dotenv/config";
@@ -14,7 +14,7 @@ export const register = async (req, res) => {
 
     try {
 
-        const ROL_id = 2;
+        const ROL_id = process.env.USER_DEFAULT_ROLE; // Asignar el rol de usuario por defecto
 
         connection = await pool.getConnection();
 
@@ -35,7 +35,7 @@ export const register = async (req, res) => {
 
         //  Guardar en la tabla 'empleado' usando el newUserId
         await connection.query(
-            'INSERT INTO empleado (nombre, apellido, dni, fecha_nac, email, domicilio, USUARIO_idUSUARIO, SECTOR_idSECTOR, CARGO_idCARGO) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO empleado (nombre, apellido, dni, fecha_nac, email, domicilio, USUARIO_idUSUARIO, SECTOR_idSECTOR, CARGO_idCARGO) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ? )',
             [nombre, apellido, dni, fecha_nac, email, domicilio, newUserId, SECTOR_idSECTOR, CARGO_idCARGO]
         );
 
