@@ -81,3 +81,101 @@ export const register = async (req, res) => {
         }
     }
 };
+
+// --- LISTAR EMPLEADOS ACTIVOS ---
+export const obtenerEmpleados = async (req, res) => {
+    try {
+        const [filas] = await pool.query('SELECT * FROM empleado WHERE estado = 1');
+        res.json(filas);
+    } catch (error) {
+        console.error("Error al obtener empleados:", error);
+        res.status(500).json({ mensaje: "Error al obtener los empleados desde la base de datos" });
+    }
+};
+
+// --- OBTENER UN EMPLEADO POR ID ---
+export const obtenerEmpleadoPorId = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [filas] = await pool.query('SELECT * FROM empleado WHERE idEMPLEADO = ?', [id]);
+
+        if (filas.length === 0) {
+            return res.status(404).json({ mensaje: "Empleado no encontrado" });
+        }
+
+        res.json(filas[0]);
+    } catch (error) {
+        console.error("Error al obtener empleado:", error);
+        res.status(500).json({ mensaje: "Error al obtener el empleado desde la base de datos" });
+    }
+};
+
+// --- MODIFICAR LOS DATOS DE UN EMPLEADO ---
+export const modificarEmpleado = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, apellido, dni, fecha_nac, email, domicilio, SECTOR_idSECTOR, CARGO_idCARGO } = req.body;
+
+        const [resultado] = await pool.query(
+            `UPDATE empleado
+             SET nombre = ?, apellido = ?, dni = ?, fecha_nac = ?, email = ?, domicilio = ?, SECTOR_idSECTOR = ?, CARGO_idCARGO = ?
+             WHERE idEMPLEADO = ?`,
+            [nombre, apellido, dni, fecha_nac, email, domicilio, SECTOR_idSECTOR, CARGO_idCARGO, id]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: "Empleado no encontrado" });
+        }
+
+        res.json({ mensaje: "Empleado actualizado correctamente" });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ mensaje: "El DNI o el correo ya están en uso por otro empleado" });
+        }
+        console.error("Error al modificar empleado:", error);
+        res.status(500).json({ mensaje: "Error al actualizar en la base de datos" });
+    }
+};
+
+// --- BAJA LÓGICA (no se borra, se marca como inactivo) ---
+export const bajaLogicaEmpleado = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [resultado] = await pool.query(
+            'UPDATE empleado SET estado = 0 WHERE idEMPLEADO = ?',
+            [id]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: "Empleado no encontrado" });
+        }
+
+        res.json({ mensaje: "Empleado dado de baja exitosamente" });
+    } catch (error) {
+        console.error("Error en la baja lógica:", error);
+        res.status(500).json({ mensaje: "Error al dar de baja en la base de datos" });
+    }
+};
+
+// --- REACTIVAR UN EMPLEADO DADO DE BAJA ---
+export const altaEmpleado = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [resultado] = await pool.query(
+            'UPDATE empleado SET estado = 1 WHERE idEMPLEADO = ?',
+            [id]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: "Empleado no encontrado" });
+        }
+
+        res.json({ mensaje: "Empleado reactivado exitosamente" });
+    } catch (error) {
+        console.error("Error al reactivar empleado:", error);
+        res.status(500).json({ mensaje: "Error al reactivar en la base de datos" });
+    }
+};
