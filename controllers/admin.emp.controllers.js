@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // --- REGISTRAR UN EMPLEADO ---
 export const register = async (req, res) => {
-    const { nombre, apellido, dni, fecha_nac, email, password, username, domicilio, USUARIO_idUSUARIO, SECTOR_idSECTOR, CARGO_idCARGO } = req.body;
+    const { nombre, apellido, dni, fecha_nac, email, password, username, domicilio, SECTOR_idSECTOR, CARGO_idCARGO } = req.body;
 
     // Necesitamos una conexión específica del pool para manejar la transacción
     let connection;

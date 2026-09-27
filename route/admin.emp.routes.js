@@ -11,11 +11,11 @@ import { verificarToken } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-router.get('/empleados', verificarToken, obtenerEmpleados);
-router.get('/empleados/:id', verificarToken, obtenerEmpleadoPorId);
-router.post('/empleados', verificarToken, register);
-router.put('/empleados/:id', verificarToken, modificarEmpleado);
-router.patch('/empleados/:id/baja', verificarToken, bajaLogicaEmpleado);
-router.patch('/empleados/:id/alta', verificarToken, altaEmpleado);
+router.get('/empleados', verificarToken, obtenerEmpleados); //FUNCIONANDO
+router.get('/empleados/:id', verificarToken, obtenerEmpleadoPorId); //FUNCIONANDO
+router.post('/empleados', verificarToken, register); //FUNCIONANDO
+router.put('/edit_empleado/:id', verificarToken, modificarEmpleado); //FUNCIONANDO
+router.patch('/baja_empleado/:id', verificarToken, bajaLogicaEmpleado); //FUNCIONANDO
+router.patch('/alta_empleado/:id', verificarToken, altaEmpleado); //FUNCIONANDO
 
 export default router;
