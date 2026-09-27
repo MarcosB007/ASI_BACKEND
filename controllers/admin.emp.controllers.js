@@ -82,6 +82,50 @@ export const register = async (req, res) => {
     }
 };
 
+// --- LOGIN ---
+export const login = async (req, res) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ mensaje: 'Usuario y contraseña son requeridos' });
+    }
+
+    try {
+        const [filas] = await pool.query(
+            'SELECT * FROM usuario WHERE username = ?',
+            [username]
+        );
+
+        if (filas.length === 0) {
+            return res.status(401).json({ mensaje: 'Usuario o contraseña incorrectos' });
+        }
+
+        const usuario = filas[0];
+
+        const passwordValida = await bcrypt.compare(password, usuario.password);
+
+        if (!passwordValida) {
+            return res.status(401).json({ mensaje: 'Usuario o contraseña incorrectos' });
+        }
+
+        const token = jwt.sign({ id: usuario.idUSUARIO, rol: usuario.rol }, JWT_SECRET, {
+            expiresIn: '1h',
+        });
+
+        res.json({
+            token,
+            user: {
+                id: usuario.idUSUARIO,
+                username: usuario.username,
+                rol: usuario.rol,
+            },
+        });
+    } catch (error) {
+        console.error('Error en el login:', error);
+        res.status(500).json({ mensaje: 'Error en el servidor' });
+    }
+};
+
 // --- LISTAR EMPLEADOS ACTIVOS ---
 export const obtenerEmpleados = async (req, res) => {
     try {
