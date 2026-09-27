@@ -4,7 +4,7 @@ import { pool } from '../database/db.js';
 export const obtenerClientes = async (req, res) => {
     try {
         // Ejecutamos la consulta SQL asíncrona
-        const [filas] = await pool.query('SELECT * FROM clientes WHERE estado = 1');
+        const [filas] = await pool.query('SELECT * FROM cliente WHERE estado = 1');
         
         // Devolvemos los datos al frontend
         res.json(filas);
