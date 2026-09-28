@@ -28,7 +28,7 @@ export const obtenerProveedorPorId = async (req, res) => {
 
 export const crearProveedor = async (req, res) => {
     try {
-        const { nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO } = req.body;
+        const { nombre, email, direccion, descripcion, rubro, EMPLEADO_idEMPLEADO } = req.body;
 
         if (!nombre || !email) {
             return res.status(400).json({ mensaje: "El nombre y el correo electrónico son requeridos" });
@@ -36,9 +36,9 @@ export const crearProveedor = async (req, res) => {
 
         const [resultado] = await pool.query(
             `INSERT INTO proveedor 
-             (nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO, estado) 
-             VALUES (?, ?, ?, ?, ?, 1)`,
-            [nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO]
+             (nombre, email, direccion, descripcion, rubro, EMPLEADO_idEMPLEADO, estado)
+             VALUES (?, ?, ?, ?, ?, ?, 1)`,
+            [nombre, email, direccion, descripcion, rubro, EMPLEADO_idEMPLEADO]
         );
 
         res.status(201).json({
@@ -60,13 +60,13 @@ export const crearProveedor = async (req, res) => {
 export const modificarProveedor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO } = req.body;
+        const { nombre, email, direccion, descripcion, rubro, EMPLEADO_idEMPLEADO } = req.body;
 
         const [resultado] = await pool.query(
-            `UPDATE proveedor 
-             SET nombre = ?, email = ?, direccion = ?, descripcion = ?, EMPLEADO_idEMPLEADO = ? 
+            `UPDATE proveedor
+             SET nombre = ?, email = ?, direccion = ?, descripcion = ?, rubro = ?, EMPLEADO_idEMPLEADO = ?
              WHERE idPROVEEDOR = ?`,
-            [nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO, id]
+            [nombre, email, direccion, descripcion, rubro, EMPLEADO_idEMPLEADO, id]
         );
 
         if (resultado.affectedRows === 0) {
