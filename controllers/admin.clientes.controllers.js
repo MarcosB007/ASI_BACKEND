@@ -3,11 +3,15 @@ import { pool } from '../database/db.js';
 
 export const obtenerClientes = async (req, res) => {
     try {
-        const [resultado] = await pool.query('SELECT * FROM CLIENTE');
-        res.json(resultado);
+        // Ejecutamos la consulta SQL asíncrona
+        const [filas] = await pool.query('SELECT * FROM cliente WHERE estado = 1');
+        
+        // Devolvemos los datos al frontend
+        res.json(filas);
     } catch (error) {
-        console.error("Error al obtener clientes:", error);
-        res.status(500).json({ mensaje: "Error en la base de datos" });
+        // Si la base de datos falla, evitamos que el servidor colapse
+        console.error("Error en la consulta:", error);
+        res.status(500).json({ mensaje: "Error al obtener los clientes desde la base de datos" });
     }
 };
 
@@ -39,7 +43,7 @@ export const modificarCliente = async (req, res) => {
         const { nombre, apellido, email } = req.body;
 
         const [resultado] = await pool.query(
-            'UPDATE CLIENTE SET nombre = ?, apellido = ?, email = ? WHERE idCLIENTE = ?',
+            'UPDATE cliente SET nombre = ?, apellido = ?, email = ? WHERE idCLIENTE = ?',
             [nombre, apellido, email, id]
         );
 
@@ -55,12 +59,12 @@ export const modificarCliente = async (req, res) => {
 };
 
 
-export const eliminarCliente = async (req, res) => {
+export const bajaLogicaCliente = async (req, res) => {
     try {
         const { id } = req.params;
 
         const [resultado] = await pool.query(
-            'DELETE FROM CLIENTE WHERE idCLIENTE = ?',
+            'UPDATE cliente SET estado = 0 WHERE idCLIENTE = ?',
             [id]
         );
 
@@ -68,9 +72,9 @@ export const eliminarCliente = async (req, res) => {
             return res.status(404).json({ mensaje: "Cliente no encontrado" });
         }
 
-        res.json({ mensaje: "Cliente eliminado exitosamente" });
+         res.json({ mensaje: "Cliente dado de baja exitosamente" });
     } catch (error) {
-        console.error("Error al eliminar cliente:", error);
-        res.status(500).json({ mensaje: "Error al eliminar en la base de datos" });
+        console.error("Error en la baja lógica:", error);
+        res.status(500).json({ mensaje: "Error al dar de baja en la base de datos" });
     }
 };
