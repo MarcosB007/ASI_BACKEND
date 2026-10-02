@@ -223,3 +223,39 @@ export const altaEmpleado = async (req, res) => {
         res.status(500).json({ mensaje: "Error al reactivar en la base de datos" });
     }
 };
+
+// --- OBTENER SECTORES ---
+export const obtenerSectores = async (req, res) => {
+    try {
+        const [filas] = await pool.query(
+            `SELECT idSECTOR, nombre
+             FROM sector
+             ORDER BY nombre ASC`
+        );
+
+        res.json(filas);
+    } catch (error) {
+        console.error("Error al obtener sectores:", error);
+        res.status(500).json({
+            mensaje: "Error al obtener los sectores desde la base de datos"
+        });
+    }
+};
+
+// --- OBTENER CARGOS ---
+export const obtenerCargos = async (req, res) => {
+    try {
+        const [filas] = await pool.query(
+            `SELECT idCARGO, nombre
+             FROM cargo
+             ORDER BY nombre ASC`
+        );
+
+        res.json(filas);
+    } catch (error) {
+        console.error("Error al obtener cargos:", error);
+        res.status(500).json({
+            mensaje: "Error al obtener los cargos desde la base de datos"
+        });
+    }
+};
