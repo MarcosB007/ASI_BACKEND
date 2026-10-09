@@ -9,16 +9,16 @@ import {
     obtenerSectores,
     obtenerCargos
 } from '../controllers/admin.emp.controllers.js';
-import { verificarToken } from '../middleware/auth.middleware.js';
+import { verificarToken, soloAdmin } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
 router.get('/empleados', verificarToken, obtenerEmpleados); //FUNCIONANDO
 router.get('/empleados/:id', verificarToken, obtenerEmpleadoPorId); //FUNCIONANDO
-router.post('/empleados', verificarToken, register); //FUNCIONANDO
-router.put('/edit_empleado/:id', verificarToken, modificarEmpleado); //FUNCIONANDO
-router.patch('/baja_empleado/:id', verificarToken, bajaLogicaEmpleado); //FUNCIONANDO
-router.patch('/alta_empleado/:id', verificarToken, altaEmpleado); //FUNCIONANDO
+router.post('/empleados', verificarToken, soloAdmin, register); //FUNCIONANDO
+router.put('/edit_empleado/:id', verificarToken, soloAdmin, modificarEmpleado); //FUNCIONANDO
+router.patch('/baja_empleado/:id', verificarToken, soloAdmin, bajaLogicaEmpleado); //FUNCIONANDO
+router.patch('/alta_empleado/:id', verificarToken, soloAdmin, altaEmpleado); //FUNCIONANDO
 router.get('/sectores', obtenerSectores);
 router.get('/cargos', obtenerCargos);
 

@@ -21,3 +21,16 @@ export const verificarToken = (req, res, next) => {
         return res.status(401).json({ mensaje: 'Token inválido o expirado' });
     }
 };
+
+// Normaliza el rol del token ("admin", "ADMIN ", etc.) para compararlo siempre igual
+export const rolDe = (req) => String(req.usuario?.rol ?? '').trim().toUpperCase();
+
+export const esAdmin = (req) => rolDe(req) === 'ADMIN';
+
+// Solo deja pasar a los usuarios con rol ADMIN (debe ir DESPUÉS de verificarToken)
+export const soloAdmin = (req, res, next) => {
+    if (!esAdmin(req)) {
+        return res.status(403).json({ mensaje: 'No tenés permisos para realizar esta acción' });
+    }
+    next();
+};

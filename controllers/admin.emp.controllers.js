@@ -2,6 +2,7 @@ import {pool} from '../database/db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import "dotenv/config";
+import { esAdmin } from '../middleware/auth.middleware.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -43,7 +44,7 @@ export const register = async (req, res) => {
         await connection.commit();
 
         // Crear el token para el auto-login
-        const token = jwt.sign({ id: newUserId }, JWT_SECRET, {
+        const token = jwt.sign({ id: newUserId, rol: ROL_id }, JWT_SECRET, {
             expiresIn: '1h',
         });
 
@@ -129,7 +130,11 @@ export const login = async (req, res) => {
 // --- LISTAR EMPLEADOS ACTIVOS ---
 export const obtenerEmpleados = async (req, res) => {
     try {
-        const [filas] = await pool.query('SELECT * FROM empleado WHERE estado = 1');
+        // ADMIN ve a todos los empleados activos; USER solo su propio registro
+        // (alcanza para que el frontend muestre el nombre del empleado "a cargo")
+        const [filas] = esAdmin(req)
+            ? await pool.query('SELECT * FROM empleado WHERE estado = 1')
+            : await pool.query('SELECT * FROM empleado WHERE estado = 1 AND USUARIO_idUSUARIO = ?', [req.usuario.id]);
         res.json(filas);
     } catch (error) {
         console.error("Error al obtener empleados:", error);
@@ -146,6 +151,11 @@ export const obtenerEmpleadoPorId = async (req, res) => {
 
         if (filas.length === 0) {
             return res.status(404).json({ mensaje: "Empleado no encontrado" });
+        }
+
+        // Un USER solo puede consultar su propio registro
+        if (!esAdmin(req) && filas[0].USUARIO_idUSUARIO !== req.usuario.id) {
+            return res.status(403).json({ mensaje: "No tenés permisos para ver este empleado" });
         }
 
         res.json(filas[0]);

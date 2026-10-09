@@ -1,8 +1,23 @@
 import { pool } from '../database/db.js';
+import { esAdmin } from '../middleware/auth.middleware.js';
+import { idEmpleadoDeUsuario, normalizarEstado } from '../database/empleadoActual.js';
 
+// ADMIN: ve todos los proveedores (activos e inactivos, para poder reactivarlos).
+// USER: solo ve los proveedores activos que tiene a cargo.
 export const obtenerProveedores = async (req, res) => {
     try {
-        const [filas] = await pool.query('SELECT * FROM proveedor WHERE estado = 1');
+        if (esAdmin(req)) {
+            const [filas] = await pool.query('SELECT * FROM proveedor ORDER BY nombre');
+            return res.json(filas);
+        }
+
+        const idEmpleado = await idEmpleadoDeUsuario(req.usuario.id);
+        if (idEmpleado === null) return res.json([]);
+
+        const [filas] = await pool.query(
+            'SELECT * FROM proveedor WHERE estado = 1 AND EMPLEADO_idEMPLEADO = ? ORDER BY nombre',
+            [idEmpleado]
+        );
         res.json(filas);
     } catch (error) {
         console.error("Error al obtener proveedores:", error);
@@ -28,17 +43,25 @@ export const obtenerProveedorPorId = async (req, res) => {
 
 export const crearProveedor = async (req, res) => {
     try {
-        const { nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO } = req.body;
+        const { nombre, email, direccion, EMPLEADO_idEMPLEADO } = req.body;
 
         if (!nombre || !email) {
             return res.status(400).json({ mensaje: "El nombre y el correo electrónico son requeridos" });
         }
+        if (!EMPLEADO_idEMPLEADO) {
+            return res.status(400).json({ mensaje: "Tenés que asignar un empleado a cargo" });
+        }
+
+        const estado = normalizarEstado(req.body.estado);
+        if (estado === null) {
+            return res.status(400).json({ mensaje: "El estado debe ser 1 (activo) o 0 (inactivo)" });
+        }
 
         const [resultado] = await pool.query(
             `INSERT INTO proveedor 
-             (nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO, estado) 
-             VALUES (?, ?, ?, ?, ?, 1)`,
-            [nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO]
+             (nombre, email, direccion, EMPLEADO_idEMPLEADO, estado) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [nombre, email, direccion ?? null, EMPLEADO_idEMPLEADO, estado]
         );
 
         res.status(201).json({
@@ -60,13 +83,25 @@ export const crearProveedor = async (req, res) => {
 export const modificarProveedor = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO } = req.body;
+        const { nombre, email, direccion, EMPLEADO_idEMPLEADO } = req.body;
+
+        if (!nombre || !email) {
+            return res.status(400).json({ mensaje: "El nombre y el correo electrónico son requeridos" });
+        }
+        if (!EMPLEADO_idEMPLEADO) {
+            return res.status(400).json({ mensaje: "Tenés que asignar un empleado a cargo" });
+        }
+
+        const estado = normalizarEstado(req.body.estado);
+        if (estado === null) {
+            return res.status(400).json({ mensaje: "El estado debe ser 1 (activo) o 0 (inactivo)" });
+        }
 
         const [resultado] = await pool.query(
             `UPDATE proveedor 
-             SET nombre = ?, email = ?, direccion = ?, descripcion = ?, EMPLEADO_idEMPLEADO = ? 
+             SET nombre = ?, email = ?, direccion = ?, EMPLEADO_idEMPLEADO = ?, estado = ? 
              WHERE idPROVEEDOR = ?`,
-            [nombre, email, direccion, descripcion, EMPLEADO_idEMPLEADO, id]
+            [nombre, email, direccion ?? null, EMPLEADO_idEMPLEADO, estado, id]
         );
 
         if (resultado.affectedRows === 0) {
