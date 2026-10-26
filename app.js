@@ -8,9 +8,10 @@ dotenv.config();
 const app = express();
 
 const allowedOrigins = [
+    'https://agropulsenoa.netlify.app/',
     'http://localhost:3000',
     'http://localhost:5173',
-    'https://agropulsenoa.netlify.app/'
+
 ];
 
 const corsOptions = {
