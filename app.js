@@ -1,58 +1,40 @@
-import axios from 'axios';
-import Cookies from 'js-cookie';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import router from "./route/index.js";
 
-const instance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-});
+dotenv.config();
 
-// Adjunta el JWT guardado en la cookie a cada request
-instance.interceptors.request.use((config) => {
-    const token = Cookies.get('token');
+const app = express();
 
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
+const allowedOrigins = [
+    "https://agropulsenoa.netlify.app",
+    "http://localhost:3000",
+    "http://localhost:5173",
+];
 
-    return config;
-});
-
-// Si el token vence o es inválido, se limpia la sesión y se vuelve al login
-instance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        const url = error.config?.url ?? '';
-        const esRutaDeAuth =
-            url.includes('/login') || url.includes('/register');
-
-        if (error.response?.status === 401 && !esRutaDeAuth) {
-            Cookies.remove('token');
-            Cookies.remove('user');
-
-            if (window.location.pathname !== '/login') {
-                window.location.assign('/login');
-            }
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
         }
-
-        return Promise.reject(error);
-    }
-);
-
-// Manejo de mensajes de error
-export const mensajesDeError = (error) => {
-    if (!error.response) {
-        return ['No se pudo conectar con el servidor'];
-    }
-
-    const { status, data } = error.response;
-
-    if (status === 404 && typeof data === 'string') {
-        return ['El servidor no tiene disponible esta ruta (404)'];
-    }
-
-    const mensaje =
-        data?.mensaje ?? data?.message ?? 'Ocurrió un error inesperado';
-
-    return Array.isArray(mensaje) ? mensaje : [mensaje];
+    },
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+    optionsSuccessStatus: 204,
 };
 
-export default instance;
+app.use(cors(corsOptions));
+app.use(express.json());
+
+app.use("/", router);
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+export default app;
