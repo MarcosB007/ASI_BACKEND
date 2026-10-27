@@ -1,15 +1,13 @@
 {
-  "name": "asi_backend",
+  "name": "agropulse-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API de AgroPulse - gestion agropecuaria del NOA",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "crear-admin": "node scripts/crearAdmin.js"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
@@ -24,3 +22,4 @@
     "nodemon": "^3.1.14"
   }
 }
+

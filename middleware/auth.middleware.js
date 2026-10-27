@@ -11,26 +11,26 @@ export const verificarToken = (req, res, next) => {
         return res.status(401).json({ mensaje: 'No se proporcionó un token de autenticación' });
     }
 
-    const token = authHeader.split(' ')[1];
-
     try {
-        const payload = jwt.verify(token, JWT_SECRET);
-        req.usuario = payload; // queda disponible en los controllers como req.usuario
+        req.usuario = jwt.verify(authHeader.split(' ')[1], JWT_SECRET); // { id, rol }
         next();
-    } catch (error) {
+    } catch {
         return res.status(401).json({ mensaje: 'Token inválido o expirado' });
     }
 };
 
-// Normaliza el rol del token ("admin", "ADMIN ", etc.) para compararlo siempre igual
+// Normaliza el rol del token para compararlo siempre igual
 export const rolDe = (req) => String(req.usuario?.rol ?? '').trim().toUpperCase();
-
 export const esAdmin = (req) => rolDe(req) === 'ADMIN';
 
-// Solo deja pasar a los usuarios con rol ADMIN (debe ir DESPUÉS de verificarToken)
-export const soloAdmin = (req, res, next) => {
-    if (!esAdmin(req)) {
+// permitir('ADMIN', 'PRODUCTOR') → solo deja pasar a esos roles (va DESPUÉS de verificarToken)
+export const permitir = (...roles) => (req, res, next) => {
+    if (!roles.includes(rolDe(req))) {
         return res.status(403).json({ mensaje: 'No tenés permisos para realizar esta acción' });
     }
     next();
 };
+
+export const soloAdmin = permitir('ADMIN');
+export const adminProductor = permitir('ADMIN', 'PRODUCTOR');
+export const todosLosRoles = permitir('ADMIN', 'PRODUCTOR', 'ENCARGADO');
