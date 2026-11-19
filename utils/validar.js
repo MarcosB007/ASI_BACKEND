@@ -68,7 +68,7 @@ export const password = (v) => {
 
 export const UNIDADES = ['TN', 'KG', 'QQ'];
 export const ESTADOS_CICLO = ['PLANIFICADO', 'SEMBRADO', 'EN_DESARROLLO', 'COSECHADO', 'CANCELADO'];
-export const ROLES = ['ADMIN', 'ENCARGADO', 'PRODUCTOR'];
+export const ROLES = ['ADMIN', 'ENCARGADO', 'PRODUCTOR']; //se agrega este rol para poder cambiar la contraseña de los productores desde el panel de administración
 
 // Filtros de listado opcionales (?finca=1&desde=2026-01-01). Un valor inválido se ignora.
 export const idQuery = (v) => {
