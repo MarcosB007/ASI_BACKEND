@@ -44,8 +44,8 @@ const crearControllers = ({ tabla, id, singular, extras, historial }) => {
             let dueno = req.usuario.id;
             if (esAdmin(req)) {
                 dueno = entero(req.body.USUARIO_idPROPIETARIO, 'El propietario', { req: true });
-                const [u] = await pool.query("SELECT 1 FROM usuario WHERE idUSUARIO = ? AND rol = 'PRODUCTOR' AND estado = 1", [dueno]);
-                if (!u.length) throw badRequest('El propietario debe ser un productor activo');
+                const [u] = await pool.query("SELECT 1 FROM usuario WHERE idUSUARIO = ? AND rol = 'ENCARGADO' AND estado = 1", [dueno]);
+                if (!u.length) throw badRequest('El responsable debe ser un encargado activo');
             }
             const cols = ['USUARIO_idPROPIETARIO', ...campos];
             const [r] = await pool.query(

@@ -35,7 +35,7 @@ export const obtenerCiclos = async (req, res) => {
         .si(opcion(req.query.estado, ESTADOS_CICLO, 'El estado', { req: false }), 'c.estado = ?');
 
     const [filas] = await pool.query(
-        `SELECT c.*, cu.nombre AS cultivo, l.nombre AS lote, l.FINCA_idFINCA, f.nombre AS finca
+        `SELECT c.*, cu.nombre AS cultivo, l.nombre AS lote, l.FINCA_idFINCA, f.nombre AS finca, f.USUARIO_idPROPIETARIO
            FROM ciclo_productivo c
            JOIN cultivo cu ON cu.idCULTIVO = c.CULTIVO_idCULTIVO
            JOIN lote l     ON l.idLOTE = c.LOTE_idLOTE

@@ -23,7 +23,7 @@ export const verificarToken = (req, res, next) => {
 export const rolDe = (req) => String(req.usuario?.rol ?? '').trim().toUpperCase();
 export const esAdmin = (req) => rolDe(req) === 'ADMIN';
 
-// permitir('ADMIN', 'PRODUCTOR') → solo deja pasar a esos roles (va DESPUÉS de verificarToken)
+// permitir('ADMIN') → solo deja pasar a esos roles (va DESPUÉS de verificarToken)
 export const permitir = (...roles) => (req, res, next) => {
     if (!roles.includes(rolDe(req))) {
         return res.status(403).json({ mensaje: 'No tenés permisos para realizar esta acción' });
@@ -32,5 +32,4 @@ export const permitir = (...roles) => (req, res, next) => {
 };
 
 export const soloAdmin = permitir('ADMIN');
-export const adminProductor = permitir('ADMIN', 'PRODUCTOR');
-export const todosLosRoles = permitir('ADMIN', 'PRODUCTOR', 'ENCARGADO');
+export const todosLosRoles = permitir('ADMIN', 'ENCARGADO');

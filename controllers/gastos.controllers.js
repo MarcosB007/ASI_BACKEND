@@ -6,21 +6,23 @@ import { crearFiltro } from '../utils/filtro.js';
 
 // RF-26: el listado devuelve los gastos filtrados; el total del período lo calcula el front
 // (y el endpoint /rentabilidad lo agrupa por finca, lote, cultivo o campaña).
-export const obtenerGastos = async (req, res) => {
+export const listarGastos = async (req) => {
     const f = filtroFincas(await fincasPermitidas(req), 'g.FINCA_idFINCA');
     const filtro = crearFiltro()
         .add(f.sql, ...f.params)
         .si(idQuery(req.query.finca), 'g.FINCA_idFINCA = ?')
+        .si(idQuery(req.query.encargado), 'f.USUARIO_idPROPIETARIO = ?')
         .si(idQuery(req.query.lote), 'g.LOTE_idLOTE = ?')
         .si(idQuery(req.query.categoria), 'g.CATEGORIA_idCATEGORIA = ?')
         .si(fechaQuery(req.query.desde), 'g.fecha >= ?')
         .si(fechaQuery(req.query.hasta), 'g.fecha <= ?');
 
     const [filas] = await pool.query(
-        `SELECT g.*, f.nombre AS finca, l.nombre AS lote, cat.nombre AS categoria, p.nombre AS proveedor,
+        `SELECT g.*, f.nombre AS finca, CONCAT(u.nombre, ' ', u.apellido) AS encargado, l.nombre AS lote, cat.nombre AS categoria, p.nombre AS proveedor,
                 cu.nombre AS cultivo, c.campania
            FROM gasto g
            JOIN finca f              ON f.idFINCA = g.FINCA_idFINCA
+           JOIN usuario u            ON u.idUSUARIO = f.USUARIO_idPROPIETARIO
            JOIN categoria_gasto cat  ON cat.idCATEGORIA = g.CATEGORIA_idCATEGORIA
            LEFT JOIN lote l          ON l.idLOTE = g.LOTE_idLOTE
            LEFT JOIN proveedor p     ON p.idPROVEEDOR = g.PROVEEDOR_idPROVEEDOR
@@ -30,8 +32,10 @@ export const obtenerGastos = async (req, res) => {
           ORDER BY g.fecha DESC, g.idGASTO DESC`,
         filtro.params
     );
-    res.json(filas);
+    return filas;
 };
+
+export const obtenerGastos = async (req, res) => res.json(await listarGastos(req));
 
 // Valida las relaciones: el lote y el ciclo deben ser de la finca elegida.
 // Si se indica un ciclo, el lote se completa solo con el del ciclo.
@@ -52,7 +56,7 @@ const leerGasto = async (req, b) => {
         const l = await lotePermitido(req, lote);
         if (l.FINCA_idFINCA !== finca) throw badRequest('El lote no pertenece a esa finca');
     }
-    if (proveedor) await contactoDeFinca('proveedor', 'idPROVEEDOR', proveedor, finca);
+    if (proveedor) await contactoDeFinca(req, 'proveedor', 'idPROVEEDOR', proveedor, finca);
 
     return {
         FINCA_idFINCA: finca,

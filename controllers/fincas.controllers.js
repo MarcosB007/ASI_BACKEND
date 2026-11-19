@@ -1,17 +1,17 @@
 import { pool } from '../database/db.js';
-import { esAdmin } from '../middleware/auth.middleware.js';
 import { badRequest, noEncontrado } from '../utils/http.js';
 import { texto, numero, entero } from '../utils/validar.js';
 import { fincasPermitidas, filtroFincas, exigirPropietario } from '../utils/acceso.js';
 
 // ---------------------------------------------------------------- FINCAS (RF-06 a RF-09)
+// Las tierras son del ADMIN. Cada finca tiene un ENCARGADO responsable (columna USUARIO_idPROPIETARIO).
 
-// ADMIN ve todas; PRODUCTOR las suyas; ENCARGADO las que tiene asignadas.
+// ADMIN ve todas; cada ENCARGADO, las fincas de las que es responsable.
 // Se devuelven también las inactivas para poder reactivarlas.
 export const obtenerFincas = async (req, res) => {
     const f = filtroFincas(await fincasPermitidas(req), 'f.idFINCA');
     const [filas] = await pool.query(
-        `SELECT f.*, CONCAT(u.nombre, ' ', u.apellido) AS propietario,
+        `SELECT f.*, CONCAT(u.nombre, ' ', u.apellido) AS encargado,
                 (SELECT COUNT(*) FROM lote l WHERE l.FINCA_idFINCA = f.idFINCA AND l.estado = 1) AS cant_lotes
            FROM finca f JOIN usuario u ON u.idUSUARIO = f.USUARIO_idPROPIETARIO
           WHERE ${f.sql}
@@ -28,20 +28,22 @@ const leerFinca = (b) => ({
     descripcion: texto(b.descripcion, 'La descripción', { max: 500 }),
 });
 
+// El responsable de la finca debe ser un encargado activo
+const leerEncargado = async (valor) => {
+    const id = entero(valor, 'El encargado de la finca', { req: true });
+    const [u] = await pool.query("SELECT 1 FROM usuario WHERE idUSUARIO = ? AND rol = 'ENCARGADO' AND estado = 1", [id]);
+    if (!u.length) throw badRequest('El responsable debe ser un encargado activo');
+    return id;
+};
+
+// Solo el ADMIN (lo controla la ruta) crea, modifica, desactiva y reasigna fincas
 export const crearFinca = async (req, res) => {
     const d = leerFinca(req.body);
-
-    // El PRODUCTOR crea fincas propias; el ADMIN elige el dueño
-    let dueno = req.usuario.id;
-    if (esAdmin(req)) {
-        dueno = entero(req.body.USUARIO_idPROPIETARIO, 'El propietario', { req: true });
-        const [u] = await pool.query("SELECT 1 FROM usuario WHERE idUSUARIO = ? AND rol = 'PRODUCTOR' AND estado = 1", [dueno]);
-        if (!u.length) throw badRequest('El propietario debe ser un productor activo');
-    }
+    const encargado = await leerEncargado(req.body.USUARIO_idPROPIETARIO);
 
     const [r] = await pool.query(
         'INSERT INTO finca (USUARIO_idPROPIETARIO, nombre, ubicacion, superficie_total, descripcion) VALUES (?, ?, ?, ?, ?)',
-        [dueno, d.nombre, d.ubicacion, d.superficie_total, d.descripcion]
+        [encargado, d.nombre, d.ubicacion, d.superficie_total, d.descripcion]
     );
     res.status(201).json({ mensaje: 'Finca creada con éxito', id: r.insertId });
 };
@@ -50,6 +52,7 @@ export const modificarFinca = async (req, res) => {
     const { id } = req.params;
     await exigirPropietario(req, id);
     const d = leerFinca(req.body);
+    const encargado = await leerEncargado(req.body.USUARIO_idPROPIETARIO);
 
     const [lotes] = await pool.query('SELECT COALESCE(SUM(superficie), 0) AS suma FROM lote WHERE FINCA_idFINCA = ? AND estado = 1', [id]);
     if (d.superficie_total < lotes[0].suma) {
@@ -57,8 +60,8 @@ export const modificarFinca = async (req, res) => {
     }
 
     await pool.query(
-        'UPDATE finca SET nombre = ?, ubicacion = ?, superficie_total = ?, descripcion = ? WHERE idFINCA = ?',
-        [d.nombre, d.ubicacion, d.superficie_total, d.descripcion, id]
+        'UPDATE finca SET USUARIO_idPROPIETARIO = ?, nombre = ?, ubicacion = ?, superficie_total = ?, descripcion = ? WHERE idFINCA = ?',
+        [encargado, d.nombre, d.ubicacion, d.superficie_total, d.descripcion, id]
     );
     res.json({ mensaje: 'Finca actualizada correctamente' });
 };
@@ -71,42 +74,6 @@ const cambiarEstadoFinca = (estado, mensaje) => async (req, res) => {
 export const bajaFinca = cambiarEstadoFinca(0, 'Finca desactivada');
 export const altaFinca = cambiarEstadoFinca(1, 'Finca reactivada');
 
-// Encargados asignados a una finca
-export const obtenerEncargadosDeFinca = async (req, res) => {
-    await exigirPropietario(req, req.params.id);
-    const [filas] = await pool.query('SELECT USUARIO_idUSUARIO AS id FROM finca_encargado WHERE FINCA_idFINCA = ?', [req.params.id]);
-    res.json(filas.map((f) => f.id));
-};
-
-export const asignarEncargados = async (req, res) => {
-    const { id } = req.params;
-    await exigirPropietario(req, id);
-
-    const ids = [...new Set((Array.isArray(req.body.ids) ? req.body.ids : []).map(Number))];
-    if (ids.some((n) => !Number.isInteger(n) || n <= 0)) throw badRequest('Lista de encargados inválida');
-
-    if (ids.length) {
-        const [ok] = await pool.query("SELECT COUNT(*) AS n FROM usuario WHERE idUSUARIO IN (?) AND rol = 'ENCARGADO' AND estado = 1", [ids]);
-        if (ok[0].n !== ids.length) throw badRequest('Solo se pueden asignar usuarios con rol Encargado');
-    }
-
-    const conn = await pool.getConnection();
-    try {
-        await conn.beginTransaction();
-        await conn.query('DELETE FROM finca_encargado WHERE FINCA_idFINCA = ?', [id]);
-        if (ids.length) {
-            await conn.query('INSERT INTO finca_encargado (FINCA_idFINCA, USUARIO_idUSUARIO) VALUES ?', [ids.map((u) => [id, u])]);
-        }
-        await conn.commit();
-    } catch (e) {
-        await conn.rollback();
-        throw e;
-    } finally {
-        conn.release();
-    }
-    res.json({ mensaje: 'Encargados actualizados' });
-};
-
 // ---------------------------------------------------------------- LOTES (RF-10 a RF-12)
 
 export const obtenerLotes = async (req, res) => {
@@ -114,9 +81,9 @@ export const obtenerLotes = async (req, res) => {
     const [filas] = await pool.query(
         `SELECT l.*, f.nombre AS finca
            FROM lote l JOIN finca f ON f.idFINCA = l.FINCA_idFINCA
-          WHERE ${f.sql}
+          WHERE ${f.sql}${req.query.finca ? ' AND l.FINCA_idFINCA = ?' : ''}
           ORDER BY f.nombre, l.nombre`,
-        f.params
+        req.query.finca ? [...f.params, Number(req.query.finca)] : f.params
     );
     res.json(filas);
 };

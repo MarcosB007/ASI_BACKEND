@@ -1,5 +1,4 @@
 import { pool } from '../database/db.js';
-import { rolDe } from '../middleware/auth.middleware.js';
 import { prohibido, badRequest } from '../utils/http.js';
 import { opcion, idQuery, fechaQuery } from '../utils/validar.js';
 import { fincasPermitidas, filtroFincas } from '../utils/acceso.js';
@@ -28,7 +27,7 @@ const leerAlcance = async (req) => {
 export const obtenerDashboard = async (req, res) => {
     const { ids, desde, hasta } = await leerAlcance(req);
     // El encargado carga datos pero no ve ventas ni resultados económicos
-    const verIngresos = rolDe(req) !== 'ENCARGADO';
+    const verIngresos = true; // admin y encargados ven ingresos y ganancia de sus fincas
 
     // Filtro de fincas + período sobre la tabla/alias que corresponda
     const periodo = (colFinca, colFecha) => {
@@ -142,7 +141,7 @@ const AGRUPACIONES = {
     },
 };
 
-export const obtenerRentabilidad = async (req, res) => {
+export const calcularRentabilidad = async (req) => {
     const agrupar = opcion(req.query.agrupar, Object.keys(AGRUPACIONES).map((k) => k.toUpperCase()), 'La agrupación', {
         porDefecto: 'CULTIVO',
     }).toLowerCase();
@@ -179,7 +178,7 @@ export const obtenerRentabilidad = async (req, res) => {
 
     const ingresos = redondear(grupos.reduce((s, g) => s + g.ingresos, 0));
     const gastos = redondear(grupos.reduce((s, g) => s + g.gastos, 0));
-    res.json({
+    return {
         agrupar,
         totales: {
             ingresos,
@@ -188,5 +187,7 @@ export const obtenerRentabilidad = async (req, res) => {
             rentabilidad_pct: gastos > 0 ? redondear(((ingresos - gastos) / gastos) * 100) : null,
         },
         grupos,
-    });
+    };
 };
+
+export const obtenerRentabilidad = async (req, res) => res.json(await calcularRentabilidad(req));

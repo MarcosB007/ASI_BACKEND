@@ -11,14 +11,6 @@ export const obtenerUsuarios = async (req, res) => {
     res.json(filas);
 };
 
-// ADMIN y PRODUCTOR: encargados activos, para asignarlos a una finca
-export const obtenerEncargados = async (req, res) => {
-    const [filas] = await pool.query(
-        `SELECT idUSUARIO, nombre, apellido, username FROM usuario WHERE rol = 'ENCARGADO' AND estado = 1 ORDER BY apellido, nombre`
-    );
-    res.json(filas);
-};
-
 const leerDatos = (b, { creando }) => {
     const datos = {
         nombre: texto(b.nombre, 'El nombre', { max: 80, req: true }),

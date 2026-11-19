@@ -68,7 +68,7 @@ export const password = (v) => {
 
 export const UNIDADES = ['TN', 'KG', 'QQ'];
 export const ESTADOS_CICLO = ['PLANIFICADO', 'SEMBRADO', 'EN_DESARROLLO', 'COSECHADO', 'CANCELADO'];
-export const ROLES = ['ADMIN', 'PRODUCTOR', 'ENCARGADO'];
+export const ROLES = ['ADMIN', 'ENCARGADO'];
 
 // Filtros de listado opcionales (?finca=1&desde=2026-01-01). Un valor inválido se ignora.
 export const idQuery = (v) => {
